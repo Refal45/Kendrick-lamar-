@@ -98,7 +98,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="totalPembayaran">Uang  Pembayaran:</label>
+                <label for="totalPembayaran">Uang Pembayaran:</label>
                 <input type="number" id="totalPembayaran" placeholder="Masukkan uang pembayaran">
             </div>
             <div class="form-group">
@@ -136,7 +136,7 @@
         <table id="reportTable">
             <thead>
                 <tr>
-                    <th>Uang Pembayaran</th>
+                    <th>Uang  Pembayaran</th>
                     <th>Jumlah Siswa</th>
                     <th>Jumlah Laki-laki</th>
                     <th>Jumlah Perempuan</th>
@@ -180,11 +180,29 @@
                 <!-- Dynamic content will be added here -->
             </tbody>
         </table>
+        
+        <h3>Riwayat Edit Pembayaran</h3>
+        <table id="editHistoryTable">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>NIS</th>
+                    <th>Nama Siswa</th>
+                    <th>Uang Pembayaran</th>
+                    <th>Jumlah yang Dibayarkan</th>
+                    <th>Tanggal Edit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dynamic content will be added here -->
+            </tbody>
+        </table>
     </div>
     
     <script>
         let users = [];
         let paymentHistory = [];
+        let editHistory = [];
         let editingIndex = -1;
 
         function displayUsers() {
@@ -194,8 +212,8 @@
             users.forEach((user, index) => {
                 const totalPembayaran = parseFloat(user.totalPembayaran);
                 const jumlahDibayar = parseFloat(user.jumlahDibayar) || 0;
-                const kembalian = jumlahDibayar >= totalPembayaran ? (jumlahDibayar - totalPembayaran).toFixed(2) : "0.00";
-                let status = totalPembayaran < 250000 ? "✘" : "✔";
+                const kembalian = (jumlahDibayar >= totalPembayaran) ? (jumlahDibayar - totalPembayaran).toFixed(2) : "0.00";
+                let status = totalPembayaran <= 250000 ? "✘" : "✔";
 
                 const row = `
                     <tr>
@@ -205,7 +223,7 @@
                         <td>${user.kelas}</td>
                         <td>${user.jurusan}</td>
                         <td>${user.gender}</td>
-                        <td>${totalPembayaran}</td>
+                        <td>${totalPembayaran.toFixed(2)}</td>
                         <td>${kembalian}</td>
                         <td>${status}</td>
                         <td>
@@ -231,26 +249,20 @@
             const jumlahDibayar = parseFloat(document.getElementById("jumlahDibayar").value);
             const date = new Date().toLocaleDateString();
 
-            if (nis && name && kelas && jurusan && totalPembayaran > 0 && jumlahDibayar > 0 && gender) {
-                if (jumlahDibayar >= totalPembayaran) {
-                    const kembalian = (jumlahDibayar - totalPembayaran).toFixed(2);
-                    document.getElementById("nis").value = "";
-                    document.getElementById("name").value = "";
-                    document.getElementById("kelas").value = "";
-                    document.getElementById("jurusan").value = "";
-                    document.getElementById("totalPembayaran").value = "";
-                    document.getElementById("jumlahDibayar").value = "";
+            if (nis && name && kelas && jurusan && totalPembayaran > 0 && jumlahDibayar >= 0 && gender) {
+                // Tambahkan pengguna baru ke dalam array users
+                users.push({ nis, name, kelas, jurusan, gender, totalPembayaran, jumlahDibayar });
+                
+                // Simpan data pembayaran ke dalam history
+                paymentHistory.push({ nis, name, totalPembayaran, jumlahDibayar, date});
 
-                    users.push({ nis, name, kelas, jurusan, totalPembayaran, jumlahDibayar, gender });
-                    paymentHistory.push({ nis, name, totalPembayaran, kembalian, date });
-
-                    displayUsers();
-                    displayPaymentHistory();
-                } else {
-                    alert("Jumlah yang dibayarkan kurang dari total pembayaran.");
-                }
+                // Kosongkan form
+                clearForm();
+                
+                // Tampilkan pengguna yang diperbarui
+                displayUsers();
             } else {
-                alert("Harap isi semua field dengan benar.");
+                alert("Harap lengkapi semua kolom.");
             }
         }
 
@@ -260,10 +272,11 @@
             document.getElementById("name").value = user.name;
             document.getElementById("kelas").value = user.kelas;
             document.getElementById("jurusan").value = user.jurusan;
+            document.querySelector(`input[name="gender"][value="${user.gender}"]`).checked = true;
             document.getElementById("totalPembayaran").value = user.totalPembayaran;
             document.getElementById("jumlahDibayar").value = user.jumlahDibayar;
-            document.querySelector(`input[name="gender"][value="${user.gender}"]`).checked = true;
 
+            // Set index untuk edit
             editingIndex = index;
             document.getElementById("updateBtn").style.display = "block";
         }
@@ -278,17 +291,25 @@
             const totalPembayaran = parseFloat(document.getElementById("totalPembayaran").value);
             const jumlahDibayar = parseFloat(document.getElementById("jumlahDibayar").value);
 
-            if (editingIndex >= 0) {
-                if (nis && name && kelas && jurusan && totalPembayaran > 0 && jumlahDibayar > 0 && gender) {
-                    users[editingIndex] = { nis, name, kelas, jurusan, totalPembayaran, jumlahDibayar, gender };
-                    displayUsers();
-                    document.getElementById("updateBtn").style.display = "none";
-                    editingIndex = -1;
-                    clearForm();
-                } else {
-                    alert("Harap isi semua field dengan benar.");
-                }
+            if (nis && name && kelas && jurusan && totalPembayaran > 0 && jumlahDibayar >= 0 && gender) {
+                // Perbarui pengguna
+                users[editingIndex] = { nis, name, kelas, jurusan, gender, totalPembayaran, jumlahDibayar };
+
+                // Perbarui riwayat edit
+                editHistory.push({ nis, name, totalPembayaran, jumlahDibayar, date: new Date().toLocaleDateString() });
+
+                // Kosongkan form
+                clearForm();
+                
+                // Tampilkan pengguna yang diperbarui
+                displayUsers();
+            } else {
+                alert("Harap lengkapi semua kolom.");
             }
+
+            // Reset tombol update
+            editingIndex = -1;
+            document.getElementById("updateBtn").style.display = "none";
         }
 
         function deleteUser(index) {
@@ -296,50 +317,33 @@
             displayUsers();
         }
 
+        function clearForm() {
+            document.getElementById("nis").value = '';
+            document.getElementById("name").value = '';
+            document.getElementById("kelas").value = '';
+            document.getElementById("jurusan").value = '';
+            document.querySelector('input[name="gender"]:checked')?.checked = false;
+            document.getElementById("totalPembayaran").value = '';
+            document.getElementById("jumlahDibayar").value = '';
+            editingIndex = -1;
+            document.getElementById("updateBtn").style.display = "none";
+        }
+
         function generateReports() {
-            const totalSiswa = users.length;
-            const totalLakiLaki = users.filter(user => user.gender === "Laki-laki").length;
-            const totalPerempuan = users.filter(user => user.gender === "Perempuan").length;
             const totalPembayaran = users.reduce((sum, user) => sum + parseFloat(user.totalPembayaran), 0);
+            const jumlahSiswa = users.length;
+            const jumlahLakiLaki = users.filter(user => user.gender === "Laki-laki").length;
+            const jumlahPerempuan = users.filter(user => user.gender === "Perempuan").length;
 
             const reportTableBody = document.querySelector("#reportTable tbody");
             reportTableBody.innerHTML = `
                 <tr>
-                    <td>${totalPembayaran}</td>
-                    <td>${totalSiswa}</td>
-                    <td>${totalLakiLaki}</td>
-                    <td>${totalPerempuan}</td>
+                    <td>${totalPembayaran.toFixed(2)}</td>
+                    <td>${jumlahSiswa}</td>
+                    <td>${jumlahLakiLaki}</td>
+                    <td>${jumlahPerempuan}</td>
                 </tr>
             `;
-        }
-
-        function displayPaymentHistory() {
-            const paymentHistoryTableBody = document.querySelector("#paymentHistoryTable tbody");
-            paymentHistoryTableBody.innerHTML = "";
-
-            paymentHistory.forEach((payment, index) => {
-                const row = `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${payment.nis}</td>
-                        <td>${payment.name}</td>
-                        <td>${payment.totalPembayaran}</td>
-                        <td>${payment.kembalian}</td>
-                        <td>${payment.date}</td>
-                    </tr>
-                `;
-                paymentHistoryTableBody.innerHTML += row;
-            });
-        }
-
-        function clearForm() {
-            document.getElementById("nis").value = "";
-            document.getElementById("name").value = "";
-            document.getElementById("kelas").value = "";
-            document.getElementById("jurusan").value = "";
-            document.getElementById("totalPembayaran").value = "";
-            document.getElementById("jumlahDibayar").value = "";
-            document.querySelector('input[name="gender"]:checked').checked = false;
         }
 
         function displayUnpaid() {
@@ -358,13 +362,58 @@
                             <td>${user.name}</td>
                             <td>${user.kelas}</td>
                             <td>${user.jurusan}</td>
-                            <td>${totalPembayaran}</td>
+                            <td>${totalPembayaran.toFixed(2)}</td>
                         </tr>
                     `;
                     unpaidTableBody.innerHTML += row;
                 }
             });
         }
+
+        // Tampilkan riwayat pembayaran
+        function displayPaymentHistory() {
+            const paymentHistoryTableBody = document.querySelector("#paymentHistoryTable tbody");
+            paymentHistoryTableBody.innerHTML = "";
+
+            paymentHistory.forEach((payment, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${payment.nis}</td>
+                        <td>${payment.name}</td>
+                        <td>${payment.totalPembayaran.toFixed(2)}</td>
+                        <td>${(payment.jumlahDibayar - payment.totalPembayaran).toFixed(2)}</td>
+                        <td>${payment.date}</td>
+                    </tr>
+                `;
+                paymentHistoryTableBody.innerHTML += row;
+            });
+        }
+
+        // Tampilkan riwayat edit pembayaran
+        function displayEditHistory() {
+            const editHistoryTableBody = document.querySelector("#editHistoryTable tbody");
+            editHistoryTableBody.innerHTML = "";
+
+            editHistory.forEach((edit, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${edit.nis}</td>
+                        <td>${edit.name}</td>
+                        <td>${edit.totalPembayaran.toFixed(2)}</td>
+                        <td>${edit.jumlahDibayar.toFixed(2)}</td>
+                        <td>${edit.date}</td>
+                    </tr>
+                `;
+                editHistoryTableBody.innerHTML += row;
+            });
+        }
+
+        // Panggil fungsi untuk menampilkan data awal
+        displayUsers();
+        displayPaymentHistory();
+        displayEditHistory();
     </script>
 </body>
 </html>
